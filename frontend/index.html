@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Dev Card Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --accent: #238636;
+            --accent-hover: #2ea043;
+            --error: #f85149;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #f0f6fc, #58a6ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 40px;
+            background: var(--card-bg);
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: border-color 0.2s;
+        }
+
+        .input-group:focus-within {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1rem;
+            padding: 12px 16px;
+            outline: none;
+        }
+
+        button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 140px;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(35, 134, 54, 0.3);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Result Area */
+        #result-container {
+            margin-top: 20px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .card-wrapper {
+            animation: fadeIn 0.6s ease-out forwards;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading Skeleton */
+        .skeleton {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: none;
+        }
+
+        .skeleton-content {
+            background: linear-gradient(90deg, #161b22 25%, #21262d 50%, #161b22 75%);
+            background-size: 200% 100%;
+            animation: pulse 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        @keyframes pulse {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .skeleton-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-bottom: 20px;
+        }
+
+        .skeleton-line {
+            height: 12px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-line.short {
+            width: 40%;
+        }
+
+        .skeleton-line.medium {
+            width: 70%;
+        }
+
+        .skeleton-line.long {
+            width: 90%;
+        }
+
+        /* Actions */
+        .actions {
+            margin-top: 24px;
+            display: none;
+            gap: 12px;
+        }
+
+        .btn-secondary {
+            background-color: #21262d;
+            border: 1px solid var(--border-color);
+            color: #c9d1d9;
+        }
+
+        .btn-secondary:hover {
+            background-color: #30363d;
+            border-color: #8b949e;
+            box-shadow: none;
+        }
+
+        #error-msg {
+            color: var(--error);
+            margin-top: 20px;
+            display: none;
+            font-size: 0.9rem;
+        }
+
+        .success-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #238636;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>GitHub Dev Card Generator</h1>
+        <p class="subtitle">Enter any public GitHub username to generate your developer profile card.</p>
+
+        <div class="input-group">
+            <input type="text" id="username" placeholder="e.g. torvalds"
+                onkeypress="if(event.key === 'Enter') generateCard()">
+            <button id="generate-btn" onclick="generateCard()">Generate Card</button>
+        </div>
+
+        <div id="error-msg"></div>
+
+        <div id="result-container">
+            <!-- Loading Skeleton -->
+            <div id="loading-skeleton" class="skeleton">
+                <div class="skeleton-content skeleton-circle"></div>
+                <div class="skeleton-content skeleton-line medium"></div>
+                <div class="skeleton-content skeleton-line short"></div>
+                <div style="margin-top: 30px;"></div>
+                <div class="skeleton-content skeleton-line long"></div>
+                <div class="skeleton-content skeleton-line long"></div>
+                <div class="skeleton-content skeleton-line medium"></div>
+            </div>
+
+            <!-- Card Result -->
+            <div id="card-result" class="card-wrapper"></div>
+
+            <div class="actions" id="action-buttons">
+                <button class="btn-secondary" onclick="copyToClipboard()">
+                    <svg style="margin-right: 8px" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z">
+                        </path>
+                        <path
+                            d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z">
+                        </path>
+                    </svg>
+                    Copy Share Link
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="success-toast">Link copied to clipboard!</div>
+
+    <script>
+        let currentCardUrl = "";
+        let retryTimer = null;
+        const API_BASE = "http://localhost:8080";
+
+        async function generateCard() {
+            const usernameInput = document.getElementById('username');
+            const username = usernameInput.value.trim();
+            const generateBtn = document.getElementById('generate-btn');
+            const skeleton = document.getElementById('loading-skeleton');
+            const cardResult = document.getElementById('card-result');
+            const errorMsg = document.getElementById('error-msg');
+            const actions = document.getElementById('action-buttons');
+
+            if (!username) return;
+
+            // Clear any pending retry
+            if (retryTimer) {
+                clearInterval(retryTimer);
+                retryTimer = null;
+            }
+
+            // Reset UI
+            errorMsg.style.display = 'none';
+            cardResult.innerHTML = '';
+            actions.style.display = 'none';
+
+            // Start Loading
+            generateBtn.disabled = true;
+            generateBtn.innerText = 'Generating...';
+            skeleton.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_BASE}/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    const errorDetail = err.detail || 'Failed to generate card';
+
+                    // Specific handling for rate limit errors
+                    if (response.status === 429 || errorDetail.includes('429') || errorDetail.includes('rate limit')) {
+                        throw { isRateLimit: true, message: errorDetail };
+                    }
+                    throw new Error(errorDetail);
+                }
+
+                const data = await response.json();
+
+                // Success
+                cardResult.innerHTML = data.html;
+                currentCardUrl = `${API_BASE}${data.card_url}`;
+                actions.style.display = 'flex';
+
+            } catch (error) {
+                if (error.isRateLimit) {
+                    // Show friendly rate limit message with auto-retry countdown
+                    let countdown = 30;
+                    errorMsg.innerHTML = `⏳ <strong>Rate limit reached.</strong> The Gemini API is temporarily busy. Auto-retrying in <span id="countdown">${countdown}</span>s... <button onclick="generateCard()" style="background:#238636;color:white;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:0.85rem;margin-left:8px;">Retry Now</button>`;
+                    errorMsg.style.display = 'block';
+                    errorMsg.style.color = '#d29922'; // warning amber instead of error red
+
+                    retryTimer = setInterval(() => {
+                        countdown--;
+                        const el = document.getElementById('countdown');
+                        if (el) el.textContent = countdown;
+                        if (countdown <= 0) {
+                            clearInterval(retryTimer);
+                            retryTimer = null;
+                            generateCard();
+                        }
+                    }, 1000);
+                } else {
+                    errorMsg.innerText = `Error: ${error.message}`;
+                    errorMsg.style.color = 'var(--error)';
+                    errorMsg.style.display = 'block';
+                }
+            } finally {
+                // End Loading
+                generateBtn.disabled = false;
+                generateBtn.innerText = 'Generate Card';
+                skeleton.style.display = 'none';
+            }
+        }
+
+        async function copyToClipboard() {
+            if (!currentCardUrl) return;
+            try {
+                await navigator.clipboard.writeText(currentCardUrl);
+                showToast();
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+            }
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>
