@@ -1,162 +1,369 @@
-    # GitHub Dev Card Generator
+<div align="center">
 
-    Generate a personalized, themed HTML "dev card" for any GitHub user. Enter a username and an AI agent fetches their profile, analyzes their vibe, picks a theme, and renders a shareable card.
+# 🎴 GitHub Dev Card Generator
 
-    Powered by **Google ADK** (Agent Development Kit) + **Gemini 2.5 Flash**, with tools exposed via an **MCP server**, a **FastAPI** backend, and a static **HTML/CSS/JS** frontend served by Nginx.
+### *Turn any GitHub username into a beautifully themed, AI-generated developer card.*
 
-    ---
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![MCP](https://img.shields.io/badge/MCP-FastMCP-7C3AED)](https://modelcontextprotocol.io/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-    ## Features
+</div>
 
-    - Enter any public GitHub username and get a styled dev card
-    - AI-driven personality analysis (developer vibe, top skills, fun fact)
-    - Auto-selected card theme: `hacker`, `builder`, `researcher`, `designer`, or `open-source-hero`
-    - Top repos and most-used languages aggregated from the GitHub API
-    - Cards saved as self-contained HTML and served via `/static/cards/<username>.html`
-    - Built-in rate-limit retries with exponential backoff for Gemini API
+---
 
-    ---
+## 📌 Overview
 
-    ## Architecture
+**GitHub Dev Card Generator** is a full-stack AI application that transforms any public GitHub profile into a personalized, shareable HTML "dev card." Users enter a username, and the system:
 
-    ```
-    ┌────────────┐    POST /generate    ┌─────────────────┐    MCP/stdio   ┌──────────────────┐
-    │  Frontend  │ ───────────────────▶ │  FastAPI + ADK  │ ─────────────▶ │   MCP Server     │
-    │  (Nginx)   │ ◀─────────────────── │   LlmAgent      │ ◀───────────── │  (FastMCP tools) │
-    └────────────┘     HTML card        └─────────────────┘                └──────────────────┘
-                                                │                                   │
-                                                ▼                                   ▼
-                                        Gemini 2.5 Flash                 GitHub REST API
-    ```
+1. Pulls the user's profile, repositories, and language statistics from the GitHub REST API.
+2. Sends a structured prompt to **Gemini 2.5 Flash** to infer the developer's *vibe*, *top skills*, *fun fact*, and *card theme*.
+3. Renders a self-contained, themed HTML card and saves it to disk.
+4. Streams the result back to the frontend for instant preview.
 
-    The agent (`github_card_agent`) is instructed to call four MCP tools in order:
+The project showcases a modern AI-engineering stack: **Google ADK + MCP tooling** as the original agentic backbone, **FastAPI** for the REST surface, and a **vanilla Nginx-served frontend** for a zero-build UI. All services are containerized and orchestrated with **Docker Compose**.
 
-    1. `scrape_github(username)` — fetch profile, repos, language stats
-    2. `analyze_profile(github_data)` — Gemini-powered vibe/theme classification
-    3. `generate_card_html(username, github_data, analysis)` — build the styled card
-    4. `save_card(username, html)` — persist to `static/cards/<username>.html`
+> ⚡ The hot path bypasses the agent for reliability and speed — Gemini is only invoked once per card (for analysis), making generation fast and rate-limit friendly. The agent and MCP server remain available for agent-driven workflows.
 
-    ---
+---
 
-    ## Project Structure
+## ✨ Features
 
-    ```
-    github-card-generator/
-    ├── docker-compose.yml
-    ├── backend/
-    │   ├── agent.py            # ADK LlmAgent + MCP toolset wiring
-    │   ├── main.py             # FastAPI app, /generate endpoint
-    │   ├── mcp_server.py       # MCP tools (scrape, analyze, render, save)
-    │   ├── requirements.txt
-    │   ├── Dockerfile
-    │   └── static/cards/       # Generated card HTML files
-    └── frontend/
-        ├── index.html          # Single-page UI
-        └── Dockerfile
-    ```
+- 🔍 **GitHub profile scraping** — fetches profile, top 6 repos by stars, and top 5 most-used languages.
+- 🧠 **AI personality analysis** — Gemini 2.5 Flash classifies the developer's vibe, skills, and theme.
+- 🎨 **5 dynamic themes** — `hacker`, `builder`, `researcher`, `designer`, `open-source-hero` — each with its own palette.
+- 💾 **Persistent cards** — saved as self-contained HTML at `/static/cards/<username>.html`.
+- 🛡 **Graceful degradation** — if Gemini fails or is rate-limited, a sensible fallback analysis is used (no 500 errors).
+- 🔁 **Retry with exponential backoff** — built-in handling for Gemini's `429 RESOURCE_EXHAUSTED`.
+- 🧩 **MCP-compatible** — the underlying tools are exposed via a FastMCP server for use by any MCP client.
+- 🐳 **One-command deploy** — `docker-compose up` and you're live on `localhost:80`.
 
-    ---
+---
 
-    ## Prerequisites
+## 🧰 Tech Stack
 
-    - Docker + Docker Compose **OR** Python 3.12+
-    - A **Google API key** with Gemini access ([aistudio.google.com](https://aistudio.google.com/))
-    - *(Optional)* A **GitHub personal access token** to raise API rate limits
+| Layer | Technology |
+|---|---|
+| **Frontend** | HTML5, CSS3 (custom theming), vanilla JavaScript, served by **Nginx (alpine)** |
+| **Backend API** | **FastAPI** + **Uvicorn** (Python 3.12, async) |
+| **AI / LLM** | **Google Gemini 2.5 Flash** via `google-genai` SDK |
+| **Agent framework** | **Google ADK** (`LlmAgent`) — optional agentic flow |
+| **Tool protocol** | **Model Context Protocol (MCP)** via **FastMCP** over stdio |
+| **HTTP client** | `httpx` (async) for GitHub REST calls |
+| **Config** | `python-dotenv` for `.env` loading |
+| **Containerization** | **Docker** + **Docker Compose** |
+| **Package manager** | `uv` (inside backend Dockerfile) |
 
-    ---
+---
 
-    ## Setup
+## 🏗 Architecture
 
-    ### 1. Configure environment variables
+```
+                ┌──────────────────────┐
+                │      User Browser    │
+                └──────────┬───────────┘
+                           │  HTTP (POST /generate)
+                           ▼
+        ┌──────────────────────────────────┐
+        │   Frontend  (Nginx + index.html) │   :80
+        └──────────────────────────────────┘
+                           │
+                           │  fetch → http://backend:8080
+                           ▼
+        ┌──────────────────────────────────┐
+        │   FastAPI Backend  (main.py)     │   :8080
+        │   ┌──────────────────────────┐   │
+        │   │   pipeline.build_card()  │   │   ◄── direct, deterministic path
+        │   └─────────────┬────────────┘   │
+        └─────────────────┼────────────────┘
+                          │
+            ┌─────────────┼──────────────┐
+            ▼             ▼              ▼
+   ┌────────────┐  ┌─────────────┐  ┌──────────────┐
+   │  GitHub    │  │   Gemini    │  │ Local FS     │
+   │  REST API  │  │  2.5 Flash  │  │ static/cards │
+   └────────────┘  └─────────────┘  └──────────────┘
 
-    Create `backend/.env`:
+        ╭──────────────── optional agentic path ────────────────╮
+        │  agent.py (Google ADK LlmAgent)                       │
+        │     └─► MCP stdio ─► mcp_server.py (FastMCP tools)    │
+        ╰────────────────────────────────────────────────────────╯
+```
 
-    ```env
-    GOOGLE_API_KEY=your_gemini_api_key_here
-    GITHUB_TOKEN=your_github_pat_here   # optional but recommended
-    ```
+**Design highlights**
 
-    ### 2. Run with Docker Compose (recommended)
+- **Two execution paths.** The primary `/generate` endpoint calls a deterministic pipeline directly (fast, reliable). The legacy ADK + MCP path is preserved for clients that want true agentic orchestration.
+- **Stateless backend.** Cards are written to disk and served as static files; no database required.
+- **Permissive CORS.** Frontend and backend are decoupled and can be deployed independently.
 
-    ```bash
-    docker-compose up --build
-    ```
+---
 
-    - Frontend: http://localhost
-    - Backend API: http://localhost:8080
+## 🔁 How It Works — Step by Step
 
-    ### 3. Run locally (without Docker)
+1. **User submits a username** in the frontend's input box.
+2. **Frontend POSTs** `{ "username": "<name>" }` to `/generate` on the FastAPI backend.
+3. **`scrape_github(username)`** — backend calls the GitHub REST API:
+   - `GET /users/{username}` → profile fields (`name`, `avatar_url`, `bio`, `followers`, `public_repos` …)
+   - `GET /users/{username}/repos?sort=updated&per_page=100` → all public repos
+   - Aggregates **top 6 repos by stars** and **top 5 most-used languages**.
+4. **`analyze_profile(github_data)`** — sends a structured JSON-only prompt to **Gemini 2.5 Flash** and parses the response into:
+   ```json
+   {
+     "developer_vibe": "…",
+     "top_skills": ["…", "…", "…"],
+     "fun_fact": "…",
+     "card_theme": "hacker | builder | researcher | designer | open-source-hero"
+   }
+   ```
+   On `429` errors, retries with exponential backoff (10s → 20s → 40s). On terminal failure, returns a safe fallback.
+5. **`generate_card_html(...)`** — picks the theme palette, injects avatar, skills, repo list, and the fun fact into a styled `<div class="card">…</div>` string.
+6. **`save_card(username, html)`** — writes the HTML to `backend/static/cards/<username>.html`.
+7. **Backend responds** with:
+   ```json
+   {
+     "username": "...",
+     "card_url": "/static/cards/<username>.html",
+     "html": "<div class=\"card\">…</div>",
+     "analysis": { ... }
+   }
+   ```
+8. **Frontend renders** the returned HTML inline and shows a "View / Download" link to the persisted card.
 
-    **Backend:**
+---
 
-    ```bash
-    cd backend
-    pip install -r requirements.txt
-    pip install google-adk
-    uvicorn main:app --host 0.0.0.0 --port 8080
-    ```
+## 📁 Project Structure
 
-    **Frontend:** open `frontend/index.html` in your browser, or serve it with any static server. Make sure it points at `http://localhost:8080`.
+```
+github-card-generator/
+├── .env.example              # Template for required env vars
+├── .gitignore
+├── README.md
+├── docker-compose.yml        # Orchestrates backend + frontend
+│
+├── backend/
+│   ├── Dockerfile            # Python 3.12-slim + uv
+│   ├── requirements.txt      # FastAPI, ADK, MCP, google-genai, httpx, …
+│   ├── main.py               # FastAPI app (/generate, /card/{u}, /health)
+│   ├── pipeline.py           # Deterministic 4-step pipeline (the hot path)
+│   ├── mcp_server.py         # FastMCP server exposing the same 4 tools
+│   ├── agent.py              # Optional Google ADK LlmAgent over MCP
+│   └── static/cards/         # Generated card HTML files (gitignored)
+│
+└── frontend/
+    ├── Dockerfile            # Nginx alpine
+    └── index.html            # Single-page UI
+```
 
-    ---
+---
 
-    ## API
+## ⚙️ Configuration
 
-    ### `POST /generate`
+Create `backend/.env` from the template:
 
-    Generate a card for a GitHub user.
+```bash
+cp .env.example backend/.env
+```
 
-    **Request:**
-    ```json
-    { "username": "octocat" }
-    ```
+Required and optional variables:
 
-    **Response:**
-    ```json
-    {
-    "username": "octocat",
-    "card_url": "/static/cards/octocat.html",
-    "html": "<div class=\"card\">...</div>",
-    "agent_response": "..."
-    }
-    ```
+| Variable | Required | Description |
+|---|---|---|
+| `GOOGLE_API_KEY` | ✅ | Gemini API key from [Google AI Studio](https://aistudio.google.com/). |
+| `GITHUB_TOKEN` | ⚪ Optional | Personal access token. Raises GitHub rate limit from **60/hr** (unauthenticated) to **5,000/hr**. |
 
-    ### `GET /card/{username}`
+> 🔒 `.env` is gitignored. Never commit real keys.
 
-    Returns the URL of a previously generated card.
+---
 
-    ### `GET /health`
+## 🚀 Getting Started
 
-    Health check. Returns `{"status": "ok", "agent": "github_card_agent"}`.
+### Option A — Docker Compose (recommended)
 
-    ---
+```bash
+git clone https://github.com/Premkumar1845/Github-Card-Generator.git
+cd Github-Card-Generator
+cp .env.example backend/.env       # then edit backend/.env with your key
 
-    ## Card Themes
+docker-compose up --build
+```
 
-    The agent picks one based on profile analysis:
+| Service | URL |
+|---|---|
+| Frontend | http://localhost |
+| Backend API | http://localhost:8080 |
+| Health check | http://localhost:8080/health |
 
-    | Theme | Background | Accent |
-    |---|---|---|
-    | `hacker` | Dark `#0d1117` | Green `#238636` |
-    | `builder` | Light `#f6f8fa` | Blue `#0969da` |
-    | `researcher` | White | Purple `#6f42c1` |
-    | `designer` | Pink `#fff5f5` | Coral `#f9826c` |
-    | `open-source-hero` | Sky `#f0f9ff` | Green `#28a745` |
+### Option B — Run locally (no Docker)
 
-    ---
+**1. Backend**
 
-    ## Troubleshooting
+```bash
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1      # Windows PowerShell
+# source .venv/bin/activate       # macOS/Linux
+pip install -r requirements.txt
+pip install google-adk            # only needed for the agentic path
+uvicorn main:app --host 0.0.0.0 --port 8080 --reload
+```
 
-    - **429 / RESOURCE_EXHAUSTED** — Gemini free-tier rate limit. The backend retries with exponential backoff; if it persists, wait a minute or upgrade your quota.
-    - **`User not found`** — Profile is private or username is misspelled.
-    - **Card not saved** — Check backend logs; the agent may have skipped a tool call. Ensure `mcp_server.py` is reachable from `agent.py`.
-    - **GitHub rate limits** — Add `GITHUB_TOKEN` to `.env` to bump unauthenticated 60/hr to 5,000/hr.
+**2. Frontend**
 
-    ---
+Open `frontend/index.html` directly in a browser, or serve it:
 
-    ## Tech Stack
+```bash
+cd frontend
+python -m http.server 5500
+```
 
-    - **Backend:** FastAPI, Uvicorn, Google ADK, MCP (FastMCP), httpx
-    - **AI:** Gemini 2.5 Flash via `google-genai`
-    - **Frontend:** Vanilla HTML/CSS/JS, served by Nginx
-    - **Infra:** Docker, Docker Compose
+Make sure the frontend points at `http://localhost:8080`.
+
+---
+
+## 📡 API Reference
+
+### `POST /generate`
+
+Generate (or regenerate) a dev card.
+
+**Request**
+
+```json
+{ "username": "octocat" }
+```
+
+**Response — 200 OK**
+
+```json
+{
+  "username": "octocat",
+  "card_url": "/static/cards/octocat.html",
+  "html": "<div class=\"card\">…</div>",
+  "analysis": {
+    "developer_vibe": "A curious tinkerer who loves shipping micro-projects.",
+    "top_skills": ["Python", "DevOps", "Open Source"],
+    "fun_fact": "Maintains more dotfiles than repos.",
+    "card_theme": "builder"
+  }
+}
+```
+
+**Error responses**
+
+| Status | When |
+|---|---|
+| `400` | Empty `username`. |
+| `404` | GitHub user not found / private. |
+| `500` | Unhandled exception (details in logs). |
+
+### `GET /card/{username}`
+
+Returns the URL of a previously generated card.
+
+```json
+{ "username": "octocat", "card_url": "/static/cards/octocat.html" }
+```
+
+### `GET /health`
+
+```json
+{ "status": "ok" }
+```
+
+### `GET /static/cards/{username}.html`
+
+Direct access to the saved card (suitable for embedding via `<iframe>` or linking from a portfolio).
+
+---
+
+## 🎨 Card Themes
+
+The agent picks one of these based on the analyzed profile:
+
+| Theme | Background | Text | Accent | Suited For |
+|---|---|---|---|---|
+| `hacker` | `#0d1117` | `#58a6ff` | `#238636` | Low-level / security / CLI devs |
+| `builder` | `#f6f8fa` | `#24292f` | `#0969da` | Pragmatic shippers, full-stack |
+| `researcher` | `#ffffff` | `#1b1f23` | `#6f42c1` | ML, academia, papers-with-code |
+| `designer` | `#fff5f5` | `#d73a49` | `#f9826c` | UI / UX / front-end craft |
+| `open-source-hero` | `#f0f9ff` | `#0366d6` | `#28a745` | Prolific OSS maintainers |
+
+---
+
+## 🧪 Quick Test
+
+After starting the backend:
+
+```bash
+# PowerShell
+$body = @{ username = "torvalds" } | ConvertTo-Json
+Invoke-RestMethod -Uri http://localhost:8080/generate -Method Post -Body $body -ContentType "application/json"
+```
+
+```bash
+# bash / curl
+curl -X POST http://localhost:8080/generate \
+     -H "Content-Type: application/json" \
+     -d '{"username":"torvalds"}'
+```
+
+---
+
+## 🛠 Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `429 / RESOURCE_EXHAUSTED` | Gemini free-tier quota hit. | Wait a minute (automatic backoff); upgrade quota; or rely on fallback analysis. |
+| `404 User not found` | Profile is private or misspelled. | Verify the username on github.com. |
+| Card returns fallback vibe | Gemini call failed silently. | Check `GOOGLE_API_KEY` is set and valid. |
+| GitHub rate-limit errors | Unauthenticated calls capped at 60/hr. | Add `GITHUB_TOKEN` to `backend/.env`. |
+| Backend can't see `.env` | Wrong working directory. | Run `uvicorn` **from inside `backend/`**, or set `--env-file`. |
+| Generated card looks broken | Missing avatar / blocked CSP. | Open `static/cards/<user>.html` directly in a browser. |
+
+---
+
+## 🗺 Roadmap
+
+- [ ] Downloadable card as **PNG / SVG** (via headless Chromium)
+- [ ] **OG-image** endpoint for social-link previews
+- [ ] Theme **voting / overrides** in the UI
+- [ ] **Caching layer** (Redis) keyed by username + ETag
+- [ ] **Auth-gated** private repo stats
+- [ ] One-click **deploy to Cloud Run / Fly.io**
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! To get started:
+
+1. Fork the repo and create a feature branch: `git checkout -b feat/your-feature`.
+2. Follow the existing code style (PEP 8, type-hints where helpful).
+3. Use **Conventional Commits** (`feat:`, `fix:`, `docs:`, `build:`, `chore:` …).
+4. Open a pull request with a clear description and screenshots if the UI changed.
+
+---
+
+## 📜 License
+
+Distributed under the **MIT License**. See `LICENSE` for details.
+
+---
+
+## 🙏 Acknowledgements
+
+- [Google AI Studio](https://aistudio.google.com/) for Gemini API access
+- [Model Context Protocol](https://modelcontextprotocol.io/) and the FastMCP project
+- [FastAPI](https://fastapi.tiangolo.com/) for the delightful Python web framework
+- [GitHub REST API](https://docs.github.com/en/rest) for profile data
+
+<div align="center">
+
+**Built with ❤️ by [@Premkumar1845](https://github.com/Premkumar1845)**
+
+⭐ *If you find this project useful, give it a star — it really helps!*
+
+</div>
