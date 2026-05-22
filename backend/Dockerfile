@@ -19,7 +19,8 @@ COPY . .
 # Create static directory
 RUN mkdir -p static/cards
 
+ENV PORT=8080
 EXPOSE 8080
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Run the application (Cloud Run injects $PORT)
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT}

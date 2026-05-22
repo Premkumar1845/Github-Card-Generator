@@ -36,7 +36,10 @@
             min-height: 100vh;
             padding: 40px 20px;
             line-height: 1.5;
+            -webkit-text-size-adjust: 100%;
         }
+
+        img, svg { max-width: 100%; height: auto; }
 
         .container {
             width: 100%;
@@ -77,10 +80,11 @@
 
         input {
             flex: 1;
+            min-width: 0;
             background: transparent;
             border: none;
             color: var(--text-primary);
-            font-size: 1rem;
+            font-size: 16px; /* >=16px prevents iOS auto-zoom */
             padding: 12px 16px;
             outline: none;
         }
@@ -201,6 +205,8 @@
             margin-top: 24px;
             display: none;
             gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .btn-secondary {
@@ -235,6 +241,33 @@
             display: none;
             z-index: 1000;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            max-width: calc(100% - 32px);
+            text-align: center;
+        }
+
+        /* Tablets and below */
+        @media (max-width: 640px) {
+            body { padding: 24px 14px; }
+            h1 { font-size: 1.85rem; }
+            p.subtitle { font-size: 1rem; margin-bottom: 28px; }
+
+            .input-group {
+                flex-direction: column;
+                gap: 8px;
+                padding: 10px;
+            }
+            .input-group input { width: 100%; padding: 12px 14px; }
+            button { width: 100%; min-width: 0; padding: 14px 20px; }
+
+            .skeleton { height: auto; min-height: 260px; }
+            .actions { width: 100%; }
+            .actions .btn-secondary { width: 100%; }
+        }
+
+        /* Very small phones */
+        @media (max-width: 380px) {
+            h1 { font-size: 1.55rem; }
+            p.subtitle { font-size: 0.9rem; }
         }
     </style>
 </head>
@@ -288,7 +321,7 @@
     <script>
         let currentCardUrl = "";
         let retryTimer = null;
-        const API_BASE = "http://localhost:8080";
+        const API_BASE = "${BACKEND_URL}";
 
         async function generateCard() {
             const usernameInput = document.getElementById('username');

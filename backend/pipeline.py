@@ -157,17 +157,17 @@ def generate_card_html(username: str, github_data: dict, analysis: dict) -> str:
     )
 
     return f"""
-    <div class="card" style="background: {t['bg']}; color: {t['text']}; border: 1px solid {t['border']}; font-family: -apple-system, system-ui, sans-serif; padding: 20px; border-radius: 12px; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-        <div style="display: flex; align-items: center; margin-bottom: 15px;">
-            <img src="{github_data.get('avatar_url')}" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid {t['accent']}; margin-right: 15px;">
-            <div>
-                <h2 style="margin: 0; font-size: 1.4rem;">{github_data.get('name') or username}</h2>
-                <p style="margin: 0; font-size: 0.9rem; opacity: 0.8;">@{username}</p>
+    <div class="card" style="background: {t['bg']}; color: {t['text']}; border: 1px solid {t['border']}; font-family: -apple-system, system-ui, sans-serif; padding: 20px; border-radius: 12px; width: 100%; max-width: 400px; box-sizing: border-box; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow-wrap: break-word; word-wrap: break-word;">
+        <div style="display: flex; align-items: center; margin-bottom: 15px; gap: 12px;">
+            <img src="{github_data.get('avatar_url')}" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid {t['accent']}; flex-shrink: 0;">
+            <div style="min-width: 0; flex: 1;">
+                <h2 style="margin: 0; font-size: 1.4rem; overflow-wrap: break-word;">{github_data.get('name') or username}</h2>
+                <p style="margin: 0; font-size: 0.9rem; opacity: 0.8; overflow-wrap: break-word;">@{username}</p>
             </div>
         </div>
         <p style="font-style: italic; margin: 12px 0; border-left: 3px solid {t['accent']}; padding-left: 10px; font-size: 0.95rem;">"{analysis.get('developer_vibe')}"</p>
         <div style="margin: 15px 0; display: flex; flex-wrap: wrap; gap: 4px;">{skills_html}</div>
-        <div style="display: flex; gap: 20px; margin-bottom: 15px; font-size: 0.85rem; border-top: 1px solid {t['border']}; border-bottom: 1px solid {t['border']}; padding: 8px 0;">
+        <div style="display: flex; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 15px; font-size: 0.85rem; border-top: 1px solid {t['border']}; border-bottom: 1px solid {t['border']}; padding: 8px 0;">
             <span><strong>{github_data.get('public_repos')}</strong> Repos</span>
             <span><strong>{github_data.get('followers')}</strong> Followers</span>
         </div>
