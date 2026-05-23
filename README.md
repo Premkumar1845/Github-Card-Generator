@@ -362,8 +362,6 @@ Distributed under the **MIT License**. See `LICENSE` for details.
 
 <div align="center">
 
-**Built with ❤️ by [@Premkumar1845](https://github.com/Premkumar1845)**
-
 ⭐ *If you find this project useful, give it a star — it really helps!*
 
 </div>
