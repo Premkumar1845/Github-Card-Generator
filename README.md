@@ -35,7 +35,10 @@ The project showcases a modern AI-engineering stack: **Google ADK + MCP tooling*
 - 🔍 **GitHub profile scraping** — fetches profile, top 6 repos by stars, and top 5 most-used languages.
 - 🧠 **AI personality analysis** — Gemini 2.5 Flash classifies the developer's vibe, skills, and theme.
 - 🎨 **5 dynamic themes** — `hacker`, `builder`, `researcher`, `designer`, `open-source-hero` — each with its own palette.
-- 💾 **Persistent cards** — saved as self-contained HTML at `/static/cards/<username>.html`.
+- ⬇️ **Download as JPG or PDF** — render the card client-side with `html2canvas` + `jsPDF` and save it locally.
+- 🔗 **Unique share link per generation** — every click of *Generate* produces a fresh `…-<id>.html` URL so links are never recycled.
+- 📣 **One-click social sharing** — round icon buttons for WhatsApp, X (Twitter), Facebook, LinkedIn, Telegram, Reddit, Instagram (copy-to-clipboard) and Email.
+- 💾 **Persistent cards** — saved as self-contained HTML at `/static/cards/<username>-<share_id>.html` (plus a `<username>.html` fragment for backward compatibility).
 - 🛡 **Graceful degradation** — if Gemini fails or is rate-limited, a sensible fallback analysis is used (no 500 errors).
 - 🔁 **Retry with exponential backoff** — built-in handling for Gemini's `429 RESOURCE_EXHAUSTED`.
 - 🧩 **MCP-compatible** — the underlying tools are exposed via a FastMCP server for use by any MCP client.
@@ -241,6 +244,8 @@ Generate (or regenerate) a dev card.
 {
   "username": "octocat",
   "card_url": "/static/cards/octocat.html",
+  "share_url": "/static/cards/octocat-a1b2c3d4e5.html",
+  "share_id": "a1b2c3d4e5",
   "html": "<div class=\"card\">…</div>",
   "analysis": {
     "developer_vibe": "A curious tinkerer who loves shipping micro-projects.",
@@ -250,6 +255,9 @@ Generate (or regenerate) a dev card.
   }
 }
 ```
+
+> `share_url` is regenerated on every call (random 10-char id) so each share link is unique.
+> `card_url` is kept for backward compatibility and always points to the latest fragment.
 
 **Error responses**
 
@@ -327,12 +335,56 @@ curl -X POST http://localhost:8080/generate \
 
 ## 🗺 Roadmap
 
-- [ ] Downloadable card as **PNG / SVG** (via headless Chromium)
-- [ ] **OG-image** endpoint for social-link previews
+- [x] Downloadable card as **JPG / PDF** (client-side via `html2canvas` + `jsPDF`)
+- [x] **Unique share link** per generation
+- [x] **Social share buttons** (WhatsApp, X, Facebook, LinkedIn, Telegram, Reddit, Instagram, Email)
+- [ ] Server-rendered **OG-image** endpoint for richer link previews
 - [ ] Theme **voting / overrides** in the UI
 - [ ] **Caching layer** (Redis) keyed by username + ETag
 - [ ] **Auth-gated** private repo stats
-- [ ] One-click **deploy to Cloud Run / Fly.io**
+- [x] One-click **deploy to Cloud Run** (see below)
+
+---
+
+## ☁️ Deploy to Google Cloud Run
+
+Two services: `gcr-backend` (FastAPI) and `gcr-frontend` (Nginx). Replace `PROJECT_ID` and `REGION` with your own.
+
+```bash
+# 0. Auth & project
+gcloud auth login
+gcloud config set project PROJECT_ID
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com
+
+# 1. Backend — build + deploy
+cd backend
+gcloud run deploy gcr-backend \
+  --source . \
+  --region REGION \
+  --allow-unauthenticated \
+  --port 8080 \
+  --memory 512Mi \
+  --set-env-vars GOOGLE_API_KEY=YOUR_GEMINI_KEY,GITHUB_TOKEN=YOUR_GH_TOKEN
+
+# Capture the backend URL (e.g. https://gcr-backend-xxx-uc.a.run.app)
+BACKEND_URL=$(gcloud run services describe gcr-backend --region REGION --format='value(status.url)')
+
+# 2. Frontend — point it at the backend URL via env var
+cd ../frontend
+gcloud run deploy gcr-frontend \
+  --source . \
+  --region REGION \
+  --allow-unauthenticated \
+  --port 8080 \
+  --set-env-vars BACKEND_URL=$BACKEND_URL
+```
+
+The frontend container's entrypoint runs `envsubst` to inject `${BACKEND_URL}` into `index.html` and `${PORT}` into `nginx.conf` at start-up, so the same image works in any environment.
+
+> **Heads-up about share links on Cloud Run.** Cloud Run's filesystem is in-memory and ephemeral — files written to `static/cards/` do not persist across instances or restarts. For reliable share links in production, either:
+> 1. Run the backend with `--max-instances=1` (simplest, single-instance only), or
+> 2. Mount a Cloud Storage bucket (`--add-volume` / GCS FUSE) at `/app/static/cards`, or
+> 3. Swap `save_card()` to upload to GCS and serve via a public bucket URL.
 
 ---
 
